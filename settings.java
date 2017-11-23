@@ -3885,12 +3885,7 @@ public final class Settings {
         /** @hide */
         public static final Validator POINTER_SPEED_VALIDATOR =
                 new InclusiveFloatRangeValidator(-7, 7);
-         /**
-         * Whether or not volume button music controls should be enabled to seek media tracks
-         * @hide
-         */
-        public static final String VOLBTN_MUSIC_CONTROLS = "volbtn_music_controls";
-
+     
         /**
          * Whether lock-to-app will be triggered by long-press on recents.
          * @hide
@@ -3920,6 +3915,39 @@ public final class Settings {
                 }
             }
         };
+
+        /**
+         * Whether or not volume button music controls should be enabled to seek media tracks
+         * 0 = 0ff, 1 = on
+         */
+        public static final String VOLBTN_MUSIC_CONTROLS = "volbtn_music_controls";
+
+        /** @hide */
+        public static final Validator VOLBTN_MUSIC_CONTROLS_VALIDATOR =
+                sBooleanValidator;
+        /**
+         * When the torch has been turned on by long press on power,
+         * automatically turn off after a configurable number of seconds.
+         * The value is an integer number of seconds in the range 0-3600.
+         * 0 means never automatically turn off.
+         */
+        public static final String TORCH_LONG_PRESS_POWER_TIMEOUT =
+                "torch_long_press_power_timeout";
+
+        /** @hide */
+        public static final Validator TORCH_LONG_PRESS_POWER_TIMEOUT_VALIDATOR =
+                new InclusiveIntegerRangeValidator(0, 3600);
+
+        /**
+         * Activate torchlight when power button is
+         * long-pressed while the display is off
+         * The value is boolean (1 or 0).
+         */
+        public static final String TORCH_LONG_PRESS_POWER_GESTURE =
+                "torch_long_press_power_gesture";
+
+        /** @hide */
+        public static final Validator TORCH_LONG_PRESS_POWER_GESTURE_VALIDATOR = sBooleanValidator;
 
         /**
          * Setting to determine whether or not to show the battery percentage in the status bar.
@@ -4174,6 +4202,11 @@ public final class Settings {
             VALIDATORS.put(WIFI_STATIC_DNS1, WIFI_STATIC_DNS1_VALIDATOR);
             VALIDATORS.put(WIFI_STATIC_DNS2, WIFI_STATIC_DNS2_VALIDATOR);
             VALIDATORS.put(SHOW_BATTERY_PERCENT, SHOW_BATTERY_PERCENT_VALIDATOR);
+            VALIDATORS.put(TORCH_LONG_PRESS_POWER_GESTURE,
+                    TORCH_LONG_PRESS_POWER_GESTURE_VALIDATOR);
+            VALIDATORS.put(TORCH_LONG_PRESS_POWER_TIMEOUT,
+                    TORCH_LONG_PRESS_POWER_TIMEOUT_VALIDATOR);
+            VALIDATORS.put(VOLBTN_MUSIC_CONTROLS, VOLBTN_MUSIC_CONTROLS_VALIDATOR);
         }
 
         /**
