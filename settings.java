@@ -194,6 +194,24 @@ public final class Settings {
             "android.settings.AIRPLANE_MODE_SETTINGS";
 
     /**
+     * Activity Action: Show mobile data usage list.
+     * <p>
+     * Input: {@link EXTRA_NETWORK_TEMPLATE} and {@link EXTRA_SUB_ID} should be included to specify
+     * how and what mobile data statistics should be collected.
+     * <p>
+     * Output: Nothing
+     * @hide
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_MOBILE_DATA_USAGE =
+            "android.settings.MOBILE_DATA_USAGE";
+
+    /** @hide */
+    public static final String EXTRA_NETWORK_TEMPLATE = "network_template";
+    /** @hide */
+    public static final String EXTRA_SUB_ID = "sub_id";
+
+    /**
      * Activity Action: Modify Airplane mode settings using a voice command.
      * <p>
      * In some cases, a matching Activity may not exist, so ensure you safeguard against this.
@@ -1749,6 +1767,10 @@ public final class Settings {
             return true;
         }
 
+        public int getCurrentGeneration() {
+            return mCurrentGeneration;
+        }
+
         private int readCurrentGeneration() {
             try {
                 return mArray.get(mIndex);
@@ -1857,6 +1879,7 @@ public final class Settings {
 
         public String getStringForUser(ContentResolver cr, String name, final int userHandle) {
             final boolean isSelf = (userHandle == UserHandle.myUserId());
+            int currentGeneration = -1;
             if (isSelf) {
                 synchronized (NameValueCache.this) {
                     if (mGenerationTracker != null) {
@@ -1869,6 +1892,9 @@ public final class Settings {
                             mValues.clear();
                         } else if (mValues.containsKey(name)) {
                             return mValues.get(name);
+                        }
+                        if (mGenerationTracker != null) {
+                            currentGeneration = mGenerationTracker.getCurrentGeneration();
                         }
                     }
                 }
@@ -1960,7 +1986,10 @@ public final class Settings {
                                         });
                                     }
                                 }
-                                mValues.put(name, value);
+                                if (mGenerationTracker != null && currentGeneration ==
+                                        mGenerationTracker.getCurrentGeneration()) {
+                                    mValues.put(name, value);
+                                }
                             }
                         } else {
                             if (LOCAL_LOGV) Log.i(TAG, "call-query of user " + userHandle
@@ -2001,7 +2030,10 @@ public final class Settings {
 
                 String value = c.moveToNext() ? c.getString(0) : null;
                 synchronized (NameValueCache.this) {
-                    mValues.put(name, value);
+                    if(mGenerationTracker != null &&
+                            currentGeneration == mGenerationTracker.getCurrentGeneration()) {
+                        mValues.put(name, value);
+                    }
                 }
                 if (LOCAL_LOGV) {
                     Log.v(TAG, "cache miss [" + mUri.getLastPathSegment() + "]: " +
@@ -3047,12 +3079,6 @@ public final class Settings {
         private static final Validator DIM_SCREEN_VALIDATOR = sBooleanValidator;
 
         /**
-         * The display color mode.
-         * @hide
-         */
-        public static final String DISPLAY_COLOR_MODE = "display_color_mode";
-
-        /**
          * The amount of time in milliseconds before the device goes to sleep or begins
          * to dream after a period of inactivity.  This value is also known as the
          * user activity timeout period since the screen isn't necessarily turned off
@@ -3885,7 +3911,7 @@ public final class Settings {
         /** @hide */
         public static final Validator POINTER_SPEED_VALIDATOR =
                 new InclusiveFloatRangeValidator(-7, 7);
-     
+
         /**
          * Whether lock-to-app will be triggered by long-press on recents.
          * @hide
@@ -3925,29 +3951,6 @@ public final class Settings {
         /** @hide */
         public static final Validator VOLBTN_MUSIC_CONTROLS_VALIDATOR =
                 sBooleanValidator;
-        /**
-         * When the torch has been turned on by long press on power,
-         * automatically turn off after a configurable number of seconds.
-         * The value is an integer number of seconds in the range 0-3600.
-         * 0 means never automatically turn off.
-         */
-        public static final String TORCH_LONG_PRESS_POWER_TIMEOUT =
-                "torch_long_press_power_timeout";
-
-        /** @hide */
-        public static final Validator TORCH_LONG_PRESS_POWER_TIMEOUT_VALIDATOR =
-                new InclusiveIntegerRangeValidator(0, 3600);
-
-        /**
-         * Activate torchlight when power button is
-         * long-pressed while the display is off
-         * The value is boolean (1 or 0).
-         */
-        public static final String TORCH_LONG_PRESS_POWER_GESTURE =
-                "torch_long_press_power_gesture";
-
-        /** @hide */
-        public static final Validator TORCH_LONG_PRESS_POWER_GESTURE_VALIDATOR = sBooleanValidator;
 
         /**
          * Setting to determine whether or not to show the battery percentage in the status bar.
@@ -4202,10 +4205,6 @@ public final class Settings {
             VALIDATORS.put(WIFI_STATIC_DNS1, WIFI_STATIC_DNS1_VALIDATOR);
             VALIDATORS.put(WIFI_STATIC_DNS2, WIFI_STATIC_DNS2_VALIDATOR);
             VALIDATORS.put(SHOW_BATTERY_PERCENT, SHOW_BATTERY_PERCENT_VALIDATOR);
-            VALIDATORS.put(TORCH_LONG_PRESS_POWER_GESTURE,
-                    TORCH_LONG_PRESS_POWER_GESTURE_VALIDATOR);
-            VALIDATORS.put(TORCH_LONG_PRESS_POWER_TIMEOUT,
-                    TORCH_LONG_PRESS_POWER_TIMEOUT_VALIDATOR);
             VALIDATORS.put(VOLBTN_MUSIC_CONTROLS, VOLBTN_MUSIC_CONTROLS_VALIDATOR);
         }
 
@@ -7542,6 +7541,13 @@ public final class Settings {
         public static final String AIRPLANE_MODE_TOGGLEABLE_RADIOS = "airplane_mode_toggleable_radios";
 
         /**
+         * An integer representing the Bluetooth Class of Device (CoD).
+         *
+         * @hide
+         */
+        public static final String BLUETOOTH_CLASS_OF_DEVICE = "bluetooth_class_of_device";
+
+        /**
          * A Long representing a bitmap of profiles that should be disabled when bluetooth starts.
          * See {@link android.bluetooth.BluetoothProfile}.
          * {@hide}
@@ -9180,6 +9186,22 @@ public final class Settings {
          */
         public static final String DEFAULT_DNS_SERVER = "default_dns_server";
 
+        /**
+         * The requested Private DNS mode (string), and an accompanying specifier (string).
+         *
+         * Currently, the specifier holds the chosen provider name when the mode requests
+         * a specific provider. It may be used to store the provider name even when the
+         * mode changes so that temporarily disabling and re-enabling the specific
+         * provider mode does not necessitate retyping the provider hostname.
+         *
+         * @hide
+         */
+        public static final String PRIVATE_DNS_MODE = "private_dns_mode";
+        /**
+         * @hide
+         */
+        public static final String PRIVATE_DNS_SPECIFIER = "private_dns_specifier";
+
         /** {@hide} */
         public static final String
                 BLUETOOTH_HEADSET_PRIORITY_PREFIX = "bluetooth_headset_priority_";
@@ -9521,7 +9543,7 @@ public final class Settings {
          * Get the key that retrieves a bluetooth Input Device's priority.
          * @hide
          */
-        public static final String getBluetoothInputDevicePriorityKey(String address) {
+        public static final String getBluetoothHidHostPriorityKey(String address) {
             return BLUETOOTH_INPUT_DEVICE_PRIORITY_PREFIX + address.toUpperCase(Locale.ROOT);
         }
 
@@ -9953,7 +9975,8 @@ public final class Settings {
         public static final String REQUIRE_PASSWORD_TO_DECRYPT = "require_password_to_decrypt";
 
         /**
-         * Whether the Volte is enabled
+         * Whether the Volte is enabled. If this setting is not set then we use the Carrier Config
+         * value {@link CarrierConfigManager#KEY_ENHANCED_4G_LTE_ON_BY_DEFAULT_BOOL}.
          * <p>
          * Type: int (0 for false, 1 for true)
          * @hide
@@ -10220,7 +10243,9 @@ public final class Settings {
             DOCK_AUDIO_MEDIA_ENABLED,
             ENCODED_SURROUND_OUTPUT,
             LOW_POWER_MODE_TRIGGER_LEVEL,
-            BLUETOOTH_ON
+            BLUETOOTH_ON,
+            PRIVATE_DNS_MODE,
+            PRIVATE_DNS_SPECIFIER
         };
 
         private static final ContentProviderHolder sProviderHolder =
